@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-fly:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python packages
+        run: pip install numpy matplotlib
+
+      - name: Build STM32F405 firmware
+        run: make firmware
+
+      - name: Unit tests
+        run: make unit
+
+      - name: Simulated flights with fault injection
+        run: make scenarios
+
+      - name: Power budget
+        run: make budget
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vayu-firmware-and-flight-data
+          path: |
+            build/vayu.elf
+            build/vayu.bin
+            build/vayu.map
+            out/results.json
+            out/nominal/
